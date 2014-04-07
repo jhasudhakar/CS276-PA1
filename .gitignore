@@ -1,3 +1,6 @@
 *.zip
 data/
 pa1.pdf
+
+.*.sw[p-z]
+.DS_Store
