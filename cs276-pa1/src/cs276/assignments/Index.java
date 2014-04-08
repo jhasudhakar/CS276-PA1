@@ -14,6 +14,12 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.LinkedList;
 
+// custom
+import cs276.util.SortByTermDoc;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class Index {
 
 	// Term id -> (position in index file, doc frequency) dictionary
@@ -97,6 +103,9 @@ public class Index {
 		/* BSBI indexing algorithm */
 		File[] dirlist = rootdir.listFiles();
 
+        // use ArrayList to collect all termID-docID pairs
+        List<Pair<Integer, Integer>> pairs = new ArrayList<Pair<Integer, Integer>>();
+
 		/* For each block */
 		for (File block : dirlist) {
 			File blockFile = new File(output, block.getName());
@@ -110,7 +119,7 @@ public class Index {
 				++totalFileCount;
 				String fileName = block.getName() + "/" + file.getName();
 				docDict.put(fileName, docIdCounter++);
-				
+
 				BufferedReader reader = new BufferedReader(new FileReader(file));
 				String line;
 				while ((line = reader.readLine()) != null) {
@@ -119,6 +128,20 @@ public class Index {
 						/*
 						 * Your code here
 						 */
+
+                        int termID;
+                        // if termDict contains the token already, do nothing
+                        // else insert it and get new termID
+                        if (!termDict.containsKey(token)) {
+                            termID = wordIdCounter;
+                            termDict.put(token, wordIdCounter);
+                            wordIdCounter++;
+                        } else {
+                            termID = termDict.get(token);
+                        }
+
+                        // add termID-docID into pairs
+                        pairs.add(new Pair(termID, docIdCounter - 1));
 					}
 				}
 				reader.close();
@@ -135,7 +158,13 @@ public class Index {
 			/*
 			 * Your code here
 			 */
-			
+
+            // sort pairs
+            Collections.sort(pairs, new SortByTermDoc());
+
+            // write output
+            // TODO
+
 			bfc.close();
 		}
 
