@@ -163,7 +163,26 @@ public class Index {
             Collections.sort(pairs, new SortByTermDoc());
 
             // write output
-            // TODO
+            int cnt = 0, prevTermID = 0, termID, docID;
+            List<Integer> postings = new ArrayList<Integer>();
+            for (Pair<Integer, Integer> p : pairs) {
+                termID = p.getFirst();
+                docID = p.getSecond();
+                if (termID == prevTermID) {
+                    postings.add(docID);
+                    prevTermID = termID;
+                } else {
+                    // write PostingList to disk
+                    bfc.write((Integer.toString(termID) + "\t").getBytes());
+                    for (int posting : postings) {
+                        bfc.write((Integer.toString(posting) + "\t").getBytes());
+                    }
+                    bfc.write("\n".getBytes());
+                    // create new postings
+                    postings = new ArrayList<Integer>();
+                    postings.add(docID);
+                }
+            }
 
 			bfc.close();
 		}
@@ -192,6 +211,49 @@ public class Index {
 			/*
 			 * Your code here
 			 */
+            String l1 = bf1.readLine();
+            String l2 = bf2.readLine();
+            while (l1 != null && l2 != null) {
+                String[] t1 = l1.split("\t");
+                String[] t2 = l2.split("\t");
+                int termID1 = Integer.parseInt(t1[0]);
+                int termID2 = Integer.parseInt(t2[0]);
+
+                if (termID1 == termID2) {
+                    // merge two postings
+                    int j = 1, k = 1;
+                    mf.write((Integer.toString(termID1) + "\t").getBytes());
+                    for (int i = 0; i < t1.length + t2.length - 2; i++) {
+                        if ((k >= t2.length) || (j < t1.length && Integer.parseInt(t1[j]) <= Integer.parseInt(t2[k]))) {
+                            mf.write((t1[j] + "\t").getBytes());
+                            j++;
+                        } else {
+                            mf.write((t2[k] + "\t").getBytes());
+                            k++;
+                        }
+                    }
+                    l1 = bf1.readLine();
+                    l2 = bf1.readLine();
+                } else if (termID1 < termID2) {
+                    // write termID1 list to file
+                    mf.write(l1.getBytes());
+                    l1 = bf1.readLine();
+                } else {
+                    // write termID2 list to file
+                    mf.write(l2.getBytes());
+                    l2 = bf2.readLine();
+                }
+            }
+
+            while (l1 != null) {
+                l1 = bf1.readLine();
+                mf.write(l1.getBytes());
+            }
+
+            while (l2 != null) {
+                l2 = bf2.readLine();
+                mf.write(l2.getBytes());
+            }
 			
 			bf1.close();
 			bf2.close();
