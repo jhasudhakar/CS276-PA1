@@ -10,15 +10,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.LinkedList;
+import java.util.*;
 
 // custom
-import cs276.util.SortByTermDoc;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import cs276.util.TermDocComparator;
 
 public class Index {
 
@@ -118,7 +113,7 @@ public class Index {
 			for (File file : filelist) {
 				++totalFileCount;
 				String fileName = block.getName() + "/" + file.getName();
-				docDict.put(fileName, docIdCounter++);
+				docDict.put(fileName, ++docIdCounter);
 
 				BufferedReader reader = new BufferedReader(new FileReader(file));
 				String line;
@@ -126,22 +121,22 @@ public class Index {
 					String[] tokens = line.trim().split("\\s+");
 					for (String token : tokens) {
 						/*
-						 * Your code here
+						 * lookup/create term id
+						 * accumulate <termId, docId>
 						 */
 
                         int termID;
                         // if termDict contains the token already, do nothing
                         // else insert it and get new termID
                         if (!termDict.containsKey(token)) {
-                            termID = wordIdCounter;
-                            termDict.put(token, wordIdCounter);
-                            wordIdCounter++;
+                            termID = ++wordIdCounter;
+                            termDict.put(token, termID);
                         } else {
                             termID = termDict.get(token);
                         }
 
                         // add termID-docID into pairs
-                        pairs.add(new Pair(termID, docIdCounter - 1));
+                        pairs.add(new Pair(termID, docIdCounter));
 					}
 				}
 				reader.close();
@@ -155,32 +150,28 @@ public class Index {
 			
 			RandomAccessFile bfc = new RandomAccessFile(blockFile, "rw");
 			
-			/*
-			 * Your code here
-			 */
-
             // sort pairs
-            Collections.sort(pairs, new SortByTermDoc());
+            Collections.sort(pairs, new TermDocComparator());
 
             // write output
-            int cnt = 0, prevTermID = 0, termID, docID;
+            int cnt = 0, prevTermID = pairs.get(0).getFirst(), termID, docID, prevDocID = -1;
             List<Integer> postings = new ArrayList<Integer>();
             for (Pair<Integer, Integer> p : pairs) {
                 termID = p.getFirst();
                 docID = p.getSecond();
                 if (termID == prevTermID) {
-                    postings.add(docID);
-                    prevTermID = termID;
+                    if (prevDocID != docID) {
+                        postings.add(docID);
+                    }
+                    prevDocID = docID;
                 } else {
                     // write PostingList to disk
-                    bfc.write((Integer.toString(termID) + "\t").getBytes());
-                    for (int posting : postings) {
-                        bfc.write((Integer.toString(posting) + "\t").getBytes());
-                    }
-                    bfc.write("\n".getBytes());
-                    // create new postings
-                    postings = new ArrayList<Integer>();
+                    index.writePosting(bfc.getChannel(), new PostingList(termID, postings));
+                    // clear postings
+                    postings.clear();
                     postings.add(docID);
+                    prevTermID = termID;
+                    prevDocID = -1;
                 }
             }
 
@@ -209,52 +200,68 @@ public class Index {
 			RandomAccessFile mf = new RandomAccessFile(combfile, "rw");
 			 
 			/*
-			 * Your code here
+			 * merge two PostingList
 			 */
-            String l1 = bf1.readLine();
-            String l2 = bf2.readLine();
-            while (l1 != null && l2 != null) {
-                String[] t1 = l1.split("\t");
-                String[] t2 = l2.split("\t");
-                int termID1 = Integer.parseInt(t1[0]);
-                int termID2 = Integer.parseInt(t2[0]);
+            FileChannel fc1 = bf1.getChannel();
+            FileChannel fc2 = bf2.getChannel();
+            FileChannel mfc = mf.getChannel();
 
-                if (termID1 == termID2) {
-                    // merge two postings
-                    int j = 1, k = 1;
-                    mf.write((Integer.toString(termID1) + "\t").getBytes());
-                    for (int i = 0; i < t1.length + t2.length - 2; i++) {
-                        if ((k >= t2.length) || (j < t1.length && Integer.parseInt(t1[j]) <= Integer.parseInt(t2[k]))) {
-                            mf.write((t1[j] + "\t").getBytes());
-                            j++;
-                        } else {
-                            mf.write((t2[k] + "\t").getBytes());
-                            k++;
+            PostingList p1 = index.readPosting(fc1);
+            PostingList p2 = index.readPosting(fc2);
+
+            while (p1 != null && p2 != null) {
+                int t1 = p1.getTermId();
+                int t2 = p2.getTermId();
+                if (t1 == t2) {
+                    // merge
+                    List<Integer> p3 = new ArrayList<Integer>();
+                    Iterator<Integer> iter1 = p1.getList().iterator();
+                    Iterator<Integer> iter2 = p2.getList().iterator();
+                    int docID1, docID2;
+                    if (iter1.hasNext() && iter2.hasNext()) {
+                        docID1 = iter1.next();
+                        docID2 = iter2.next();
+                        while (true) {
+                            // removed duplicates in postings list
+                            // no need to consider docID1 == docID2 case
+                            if (docID1 < docID2) {
+                                p3.add(docID1);
+                                if (iter1.hasNext()) {
+                                    docID1 = iter1.next();
+                                } else {
+                                    break;
+                                }
+                            } else {
+                                p3.add(docID2);
+                                if (iter2.hasNext()) {
+                                    docID2 = iter2.next();
+                                } else {
+                                    break;
+                                }
+                            }
                         }
                     }
-                    l1 = bf1.readLine();
-                    l2 = bf1.readLine();
-                } else if (termID1 < termID2) {
-                    // write termID1 list to file
-                    mf.write(l1.getBytes());
-                    l1 = bf1.readLine();
+                    while (iter1.hasNext()) {
+                        p3.add(iter1.next());
+                    }
+                    while (iter2.hasNext()) {
+                        p3.add(iter2.next());
+                    }
+                    // write p3
+                    index.writePosting(mfc, new PostingList(t1, p3));
+                    p1 = index.readPosting(fc1);
+                    p2 = index.readPosting(fc2);
+                } else if (t1 < t2) {
+                    // write p1
+                    index.writePosting(mfc, p1);
+                    p1 = index.readPosting(fc1);
                 } else {
-                    // write termID2 list to file
-                    mf.write(l2.getBytes());
-                    l2 = bf2.readLine();
+                    // write p2
+                    index.writePosting(mfc, p2);
+                    p2 = index.readPosting(fc2);
                 }
             }
 
-            while (l1 != null) {
-                l1 = bf1.readLine();
-                mf.write(l1.getBytes());
-            }
-
-            while (l2 != null) {
-                l2 = bf2.readLine();
-                mf.write(l2.getBytes());
-            }
-			
 			bf1.close();
 			bf2.close();
 			mf.close();

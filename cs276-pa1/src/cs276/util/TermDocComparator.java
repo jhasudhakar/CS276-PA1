@@ -7,7 +7,7 @@ import java.util.Comparator;
  *
  * @author Wei Wei
  */
-public class SortByTermDoc implements Comparator<Pair<Integer, Integer>> {
+public class TermDocComparator implements Comparator<Pair<Integer, Integer>> {
     public int compare(Pair<Integer, Integer> x, Pair<Integer, Integer> y) {
         int xFirst = x.getFirst();
         int xSecond = x.getSecond();
