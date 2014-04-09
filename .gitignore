@@ -1,5 +1,5 @@
 *.zip
-data/
+/data/
 pa1.pdf
 
 .*.sw[p-z]
