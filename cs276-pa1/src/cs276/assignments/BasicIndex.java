@@ -17,7 +17,7 @@ public class BasicIndex implements BaseIndex {
      * @return a PostList
      */
     @Override
-	public PostingList readPosting(FileChannel fc) {
+    public PostingList readPosting(FileChannel fc) {
         ByteBuffer buffer = ByteBuffer.allocate(Integer_BYTES* BUFFER_LIMIT);
 
         readFromFileChannel(fc, buffer);
@@ -54,7 +54,7 @@ public class BasicIndex implements BaseIndex {
         }
 
         return new PostingList(termID, postings);
-	}
+    }
 
     /**
      * Adjust fc's position by offset bytes.
@@ -70,7 +70,7 @@ public class BasicIndex implements BaseIndex {
     }
 
     @Override
-	public void writePosting(FileChannel fc, PostingList p) {
+    public void writePosting(FileChannel fc, PostingList p) {
         ByteBuffer buffer = ByteBuffer.allocate(Integer_BYTES * BUFFER_LIMIT);
         buffer.putInt(p.getTermId());
         Iterator<Integer> iterator = p.getList().iterator();
