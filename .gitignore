@@ -1,5 +1,7 @@
 *.zip
 /data/
+classes/
+output/
 pa1.pdf
 
 .*.sw[p-z]
