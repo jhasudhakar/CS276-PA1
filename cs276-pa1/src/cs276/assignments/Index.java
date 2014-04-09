@@ -166,8 +166,8 @@ public class Index {
                     prevDocID = docID;
                 } else {
                     // write PostingList to disk
-                    index.writePosting(bfc.getChannel(), new PostingList(termID, postings));
                     // clear postings
+                    index.writePosting(bfc.getChannel(), new PostingList(prevTermID, postings));
                     postings.clear();
                     postings.add(docID);
                     prevTermID = termID;
