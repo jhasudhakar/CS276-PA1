@@ -113,7 +113,9 @@ public class Index {
 			for (File file : filelist) {
 				++totalFileCount;
 				String fileName = block.getName() + "/" + file.getName();
-				docDict.put(fileName, ++docIdCounter);
+                // use pre-increment to ensure docID > 0
+                int docID = ++docIdCounter;
+				docDict.put(fileName, docID);
 
 				BufferedReader reader = new BufferedReader(new FileReader(file));
 				String line;
@@ -129,6 +131,7 @@ public class Index {
                         // if termDict contains the token already, do nothing
                         // else insert it and get new termID
                         if (!termDict.containsKey(token)) {
+                            // use pre-increment to ensure termID > 0
                             termID = ++wordIdCounter;
                             termDict.put(token, termID);
                         } else {
@@ -136,7 +139,7 @@ public class Index {
                         }
 
                         // add termID-docID into pairs
-                        pairs.add(new Pair(termID, docIdCounter));
+                        pairs.add(new Pair(termID, docID));
 					}
 				}
 				reader.close();
@@ -154,20 +157,28 @@ public class Index {
             Collections.sort(pairs, new TermDocComparator());
 
             // write output
-            int cnt = 0, prevTermID = pairs.get(0).getFirst(), termID, docID, prevDocID = -1;
+            int cnt = 0, prevTermID = -1, termID, prevDocID = -1, docID;
+            if (pairs.size() > 0)
+                // set valid prevTermID
+                prevTermID = pairs.get(0).getFirst();
+
             List<Integer> postings = new ArrayList<Integer>();
             for (Pair<Integer, Integer> p : pairs) {
                 termID = p.getFirst();
                 docID = p.getSecond();
+
                 if (termID == prevTermID) {
+                    // duplicate docIDs only added once
                     if (prevDocID != docID) {
                         postings.add(docID);
                     }
                     prevDocID = docID;
                 } else {
-                    // write PostingList to disk
-                    // clear postings
+                    // a different term is encountered
+                    // should write postings of previous term to disk
                     index.writePosting(bfc.getChannel(), new PostingList(prevTermID, postings));
+
+                    // start new postings
                     postings.clear();
                     postings.add(docID);
                     prevTermID = termID;
@@ -212,18 +223,21 @@ public class Index {
             while (p1 != null && p2 != null) {
                 int t1 = p1.getTermId();
                 int t2 = p2.getTermId();
+
                 if (t1 == t2) {
-                    // merge
+                    // merge postings of the same term
                     List<Integer> p3 = new ArrayList<Integer>();
                     Iterator<Integer> iter1 = p1.getList().iterator();
                     Iterator<Integer> iter2 = p2.getList().iterator();
                     int docID1, docID2;
+
                     if (iter1.hasNext() && iter2.hasNext()) {
                         docID1 = iter1.next();
                         docID2 = iter2.next();
+
                         while (true) {
                             // removed duplicates in postings list
-                            // no need to consider docID1 == docID2 case
+                            // TODO: need to consider docID1 == docID2 case
                             if (docID1 < docID2) {
                                 p3.add(docID1);
                                 if (iter1.hasNext()) {
@@ -241,13 +255,17 @@ public class Index {
                             }
                         }
                     }
+
+                    // add remaining of list 1
                     while (iter1.hasNext()) {
                         p3.add(iter1.next());
                     }
+                    // ditto
                     while (iter2.hasNext()) {
                         p3.add(iter2.next());
                     }
-                    // write p3
+
+                    // write p3 to disk
                     index.writePosting(mfc, new PostingList(t1, p3));
                     p1 = index.readPosting(fc1);
                     p2 = index.readPosting(fc2);
