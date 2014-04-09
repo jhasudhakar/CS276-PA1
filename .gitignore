@@ -4,3 +4,6 @@ pa1.pdf
 
 .*.sw[p-z]
 .DS_Store
+
+.idea
+*.iml
