@@ -1,6 +1,7 @@
 *.zip
 /data/
 classes/
+out/
 output/
 pa1.pdf
 
