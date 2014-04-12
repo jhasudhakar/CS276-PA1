@@ -76,37 +76,37 @@ public class Index {
         Iterator<Integer> iter1 = p1.getList().iterator();
         Iterator<Integer> iter2 = p2.getList().iterator();
         List<Integer> postings = new ArrayList<Integer>();
-        Integer docID1 = popNextOrNull(iter1);
-        Integer docID2 = popNextOrNull(iter2);
-        Integer prevDocID = new Integer(0);
-        while (docID1 != null && docID2 != null) {
-            if (docID1 < docID2) {
-                if (prevDocID < docID1) {
-                    postings.add(docID1);
-                    prevDocID = docID1;
+        Integer docId1 = popNextOrNull(iter1);
+        Integer docId2 = popNextOrNull(iter2);
+        Integer prevDocId = new Integer(0);
+        while (docId1 != null && docId2 != null) {
+            if (docId1 < docId2) {
+                if (prevDocId < docId1) {
+                    postings.add(docId1);
+                    prevDocId = docId1;
                 }
-                docID1 = popNextOrNull(iter1);
+                docId1 = popNextOrNull(iter1);
             } else {
-                if (prevDocID < docID2) {
-                    postings.add(docID2);
-                    prevDocID = docID2;
+                if (prevDocId < docId2) {
+                    postings.add(docId2);
+                    prevDocId = docId2;
                 }
-                docID2 = popNextOrNull(iter2);
+                docId2 = popNextOrNull(iter2);
             }
         }
 
-        while (docID1 != null) {
-            if (prevDocID < docID1) {
-                postings.add(docID1);
+        while (docId1 != null) {
+            if (prevDocId < docId1) {
+                postings.add(docId1);
             }
-            docID1 = popNextOrNull(iter1);
+            docId1 = popNextOrNull(iter1);
         }
 
-        while (docID2 != null) {
-            if (prevDocID < docID2) {
-                postings.add(docID2);
+        while (docId2 != null) {
+            if (prevDocId < docId2) {
+                postings.add(docId2);
             }
-            docID2 = popNextOrNull(iter2);
+            docId2 = popNextOrNull(iter2);
         }
 
         return new PostingList(p1.getTermId(), postings);
@@ -173,8 +173,8 @@ public class Index {
                 ++totalFileCount;
                 String fileName = block.getName() + "/" + file.getName();
                 // use pre-increment to ensure docID > 0
-                int docID = ++docIdCounter;
-                docDict.put(fileName, docID);
+                int docId = ++docIdCounter;
+                docDict.put(fileName, docId);
 
                 BufferedReader reader = new BufferedReader(new FileReader(file));
                 String line;
@@ -186,19 +186,19 @@ public class Index {
                          * accumulate <termId, docId>
                          */
 
-                        int termID;
+                        int termId;
                         // if termDict contains the token already, do nothing
                         // else insert it and get new termID
                         if (!termDict.containsKey(token)) {
                             // use pre-increment to ensure termID > 0
-                            termID = ++wordIdCounter;
-                            termDict.put(token, termID);
+                            termId = ++wordIdCounter;
+                            termDict.put(token, termId);
                         } else {
-                            termID = termDict.get(token);
+                            termId = termDict.get(token);
                         }
 
                         // add termID-docID into pairs
-                        pairs.add(new Pair(termID, docID));
+                        pairs.add(new Pair(termId, docId));
                     }
                 }
                 reader.close();
@@ -216,32 +216,32 @@ public class Index {
             Collections.sort(pairs, new TermDocComparator());
 
             // write output
-            int cnt = 0, prevTermID = -1, termID, prevDocID = -1, docID;
+            int cnt = 0, prevTermId = -1, termId, prevDocId = -1, docId;
             if (pairs.size() > 0)
                 // set valid prevTermID
-                prevTermID = pairs.get(0).getFirst();
+                prevTermId = pairs.get(0).getFirst();
 
             List<Integer> postings = new ArrayList<Integer>();
             for (Pair<Integer, Integer> p : pairs) {
-                termID = p.getFirst();
-                docID = p.getSecond();
+                termId = p.getFirst();
+                docId = p.getSecond();
 
-                if (termID == prevTermID) {
+                if (termId == prevTermId) {
                     // duplicate docIDs only added once
-                    if (prevDocID != docID) {
-                        postings.add(docID);
+                    if (prevDocId != docId) {
+                        postings.add(docId);
                     }
-                    prevDocID = docID;
+                    prevDocId = docId;
                 } else {
                     // a different term is encountered
                     // should write postings of previous term to disk
-                    writePosting(bfc.getChannel(), new PostingList(prevTermID, postings));
+                    writePosting(bfc.getChannel(), new PostingList(prevTermId, postings));
 
                     // start new postings
                     postings.clear();
-                    postings.add(docID);
-                    prevTermID = termID;
-                    prevDocID = -1;
+                    postings.add(docId);
+                    prevTermId = termId;
+                    prevDocId = -1;
                 }
             }
 
