@@ -53,6 +53,64 @@ public class Index {
          */
     }
 
+    /**
+     * Pop next element if there is one, otherwise return null
+     * @param iter an iterator that contains integers
+     * @return next element or null
+     */
+    private static Integer popNextOrNull(Iterator<Integer> iter) {
+        if (iter.hasNext()) {
+            return iter.next();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Merge two posting lists
+     * @param p1
+     * @param p2
+     */
+    private static PostingList mergePostings(PostingList p1, PostingList p2) {
+        Iterator<Integer> iter1 = p1.getList().iterator();
+        Iterator<Integer> iter2 = p2.getList().iterator();
+        List<Integer> postings = new ArrayList<Integer>();
+        Integer docID1 = popNextOrNull(iter1);
+        Integer docID2 = popNextOrNull(iter2);
+        Integer prevDocID = new Integer(0);
+        while (docID1 != null && docID2 != null) {
+            if (docID1 < docID2) {
+                if (prevDocID < docID1) {
+                    postings.add(docID1);
+                    prevDocID = docID1;
+                }
+                docID1 = popNextOrNull(iter1);
+            } else {
+                if (prevDocID < docID2) {
+                    postings.add(docID2);
+                    prevDocID = docID2;
+                }
+                docID2 = popNextOrNull(iter2);
+            }
+        }
+
+        while (docID1 != null) {
+            if (prevDocID < docID1) {
+                postings.add(docID1);
+            }
+            docID1 = popNextOrNull(iter1);
+        }
+
+        while (docID2 != null) {
+            if (prevDocID < docID2) {
+                postings.add(docID2);
+            }
+            docID2 = popNextOrNull(iter2);
+        }
+
+        return new PostingList(p1.getTermId(), postings);
+    }
+
     public static void main(String[] args) throws IOException {
         /* Parse command line */
         if (args.length != 3) {
@@ -226,47 +284,10 @@ public class Index {
 
                 if (t1 == t2) {
                     // merge postings of the same term
-                    List<Integer> p3 = new ArrayList<Integer>();
-                    Iterator<Integer> iter1 = p1.getList().iterator();
-                    Iterator<Integer> iter2 = p2.getList().iterator();
-                    int docID1, docID2;
-
-                    if (iter1.hasNext() && iter2.hasNext()) {
-                        docID1 = iter1.next();
-                        docID2 = iter2.next();
-
-                        while (true) {
-                            // removed duplicates in postings list
-                            // TODO: need to consider docID1 == docID2 case
-                            if (docID1 < docID2) {
-                                p3.add(docID1);
-                                if (iter1.hasNext()) {
-                                    docID1 = iter1.next();
-                                } else {
-                                    break;
-                                }
-                            } else {
-                                p3.add(docID2);
-                                if (iter2.hasNext()) {
-                                    docID2 = iter2.next();
-                                } else {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    // add remaining of list 1
-                    while (iter1.hasNext()) {
-                        p3.add(iter1.next());
-                    }
-                    // ditto
-                    while (iter2.hasNext()) {
-                        p3.add(iter2.next());
-                    }
+                    PostingList p3 = mergePostings(p1, p2);
 
                     // write p3 to disk
-                    index.writePosting(mfc, new PostingList(t1, p3));
+                    index.writePosting(mfc, p3);
                     p1 = index.readPosting(fc1);
                     p2 = index.readPosting(fc2);
                 } else if (t1 < t2) {
