@@ -31,9 +31,11 @@ public class Query {
      * */
     private static PostingList readPosting(FileChannel fc, int termId)
             throws IOException {
-        /*
-         * Your code here
-         */
+        // first seek to the file position of this specific posting list
+        if (posDict.containsKey(termId)) {
+            // read it back
+            return index.readPosting(fc.position(posDict.get(termId)));
+        }
         return null;
     }
 
