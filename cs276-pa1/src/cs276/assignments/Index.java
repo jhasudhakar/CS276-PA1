@@ -241,10 +241,13 @@ public class Index {
                     postings.clear();
                     postings.add(docId);
                     prevTermId = termId;
-                    prevDocId = -1;
+                    prevDocId = docId;
                 }
             }
+            writePosting(bfc.getChannel(), new PostingList(prevTermId, postings));
 
+            // clear the contents in pairs and close file channel
+            pairs.clear();
             bfc.close();
         }
 
@@ -300,6 +303,16 @@ public class Index {
                     writePosting(mfc, p2);
                     p2 = index.readPosting(fc2);
                 }
+            }
+
+            while (p1 != null) {
+                writePosting(mfc, p1);
+                p1 = index.readPosting(fc1);
+            }
+
+            while (p2 != null) {
+                writePosting(mfc, p2);
+                p2 = index.readPosting(fc2);
             }
 
             bf1.close();
