@@ -180,7 +180,7 @@ public class Query {
                     termNotFound = true;
                 }
             }
-            if (!termNotFound) {
+            if (termNotFound) {
                 termNotFound = false;
                 System.out.println("no results found");
                 continue;
