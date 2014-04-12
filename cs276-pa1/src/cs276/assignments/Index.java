@@ -48,9 +48,10 @@ public class Index {
      * */
     private static void writePosting(FileChannel fc, PostingList posting)
             throws IOException {
-        /*
-         * Your code here
-         */
+        // update postingDict
+        postingDict.put(posting.getTermId(), new Pair<Long, Integer>(fc.position(), posting.getList().size()));
+        // write posting to file channel
+        index.writePosting(fc, posting);
     }
 
     /**
@@ -234,7 +235,7 @@ public class Index {
                 } else {
                     // a different term is encountered
                     // should write postings of previous term to disk
-                    index.writePosting(bfc.getChannel(), new PostingList(prevTermID, postings));
+                    writePosting(bfc.getChannel(), new PostingList(prevTermID, postings));
 
                     // start new postings
                     postings.clear();
@@ -287,16 +288,16 @@ public class Index {
                     PostingList p3 = mergePostings(p1, p2);
 
                     // write p3 to disk
-                    index.writePosting(mfc, p3);
+                    writePosting(mfc, p3);
                     p1 = index.readPosting(fc1);
                     p2 = index.readPosting(fc2);
                 } else if (t1 < t2) {
                     // write p1
-                    index.writePosting(mfc, p1);
+                    writePosting(mfc, p1);
                     p1 = index.readPosting(fc1);
                 } else {
                     // write p2
-                    index.writePosting(mfc, p2);
+                    writePosting(mfc, p2);
                     p2 = index.readPosting(fc2);
                 }
             }
