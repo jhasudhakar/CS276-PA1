@@ -5,21 +5,31 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Iterator;
+import java.util.List;
 
 public class VBIndex implements BaseIndex {
 
-    private static final int Integer_BYTES = 4;
+    private static final int Integer_BYTES = Integer.SIZE / Byte.SIZE;
 
-    private static void VBEncode(Iterator<Integer> inputGaps, int numGaps, FileChannel fc) {
+    private static void GapEncode(Integer[] inputDocIdsOutputGaps) {
+        int curr = 0, prev;
+        for (int i = 0; i < inputDocIdsOutputGaps.length; i++) {
+            prev = curr;
+            curr = inputDocIdsOutputGaps[i];
+            inputDocIdsOutputGaps[i] = curr - prev;
+        }
+    }
+
+    private static void VBEncode(Integer[] inputGaps, int numGaps, FileChannel fc) {
         byte encodedInt[] = new byte[Integer.SIZE/7 + 1];
         ByteBuffer buffer = ByteBuffer.allocate(numGaps * (Integer.SIZE/7 + 1) + Integer_BYTES);
-        while (inputGaps.hasNext()) {
-            int numBytes = VBEncodeInteger(inputGaps.next(), encodedInt);
-            for (int i = 0; i < numBytes; i++) {
-                buffer.put(encodedInt[i]);
+        buffer.putInt(numGaps);
+        for (int i = 0; i < numGaps; i++) {
+            int numBytes = VBEncodeInteger(inputGaps[i], encodedInt);
+            for (int j = 0; j < numBytes; j++) {
+                buffer.put(encodedInt[j]);
             }
         }
-        buffer.put((byte)0xff);
         buffer.flip();
         try {
             fc.write(buffer);
@@ -60,9 +70,8 @@ public class VBIndex implements BaseIndex {
 
     @Override
     public void writePosting(FileChannel fc, PostingList p) {
-        // get iterator
-        Iterator<Integer> iter = p.getList().iterator();
-        // write postings
-        VBEncode(iter, p.getList().size(), fc);
+        Integer[] arr = p.getList().toArray(new Integer[p.getList().size()]);
+        GapEncode(arr);
+        VBEncode(arr, arr.length, fc);
     }
 }
