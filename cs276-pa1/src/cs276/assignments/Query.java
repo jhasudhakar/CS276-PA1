@@ -166,7 +166,7 @@ public class Query {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         /* For each query */
-        Boolean termNotFound = false;
+        boolean termNotFound = false;
         while ((line = br.readLine()) != null) {
             // tokens in the query are separated by space
             String[] tokens = line.split("\\s+");

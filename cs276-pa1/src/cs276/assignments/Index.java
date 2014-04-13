@@ -78,7 +78,7 @@ public class Index {
         List<Integer> postings = new ArrayList<Integer>();
         Integer docId1 = popNextOrNull(iter1);
         Integer docId2 = popNextOrNull(iter2);
-        Integer prevDocId = new Integer(0);
+        Integer prevDocId = 0;
         while (docId1 != null && docId2 != null) {
             if (docId1 < docId2) {
                 if (prevDocId < docId1) {
