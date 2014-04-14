@@ -97,12 +97,12 @@ public class BasicIndex implements BaseIndex {
 
         buffer.putInt(-1); // posting list boundary
         // compact buffer so it's ready to write
-        buffer.flip();
         writeToFileChannel(fc, buffer);
     }
 
     private static void writeToFileChannel(FileChannel fc, ByteBuffer buffer) {
         try {
+            buffer.flip();
             fc.write(buffer);
         } catch (IOException e) {
             e.printStackTrace();
