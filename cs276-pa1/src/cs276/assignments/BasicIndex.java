@@ -18,7 +18,7 @@ public class BasicIndex implements BaseIndex {
      */
     @Override
     public PostingList readPosting(FileChannel fc) {
-        ByteBuffer buffer = ByteBuffer.allocate(Integer_BYTES* BUFFER_LIMIT);
+        ByteBuffer buffer = ByteBuffer.allocate(Integer_BYTES * BUFFER_LIMIT);
 
         readFromFileChannel(fc, buffer);
         if (!buffer.hasRemaining())
