@@ -65,13 +65,15 @@ public class Query {
         Integer docId1 = popNextOrNull(p1);
         Integer docId2 = popNextOrNull(p2);
 
+        int comp;
         while (docId1 != null && docId2 != null) {
-            if (docId1 == docId2) {
+            comp = docId1.compareTo(docId2);
+            if (comp == 0) {
                 answer.add(docId1);
                 docId1 = popNextOrNull(p1);
                 docId2 = popNextOrNull(p2);
             }
-            else if (docId1 < docId2) {
+            else if (comp < 0) {
                 docId1 = popNextOrNull(p1);
             } else {
                 docId2 = popNextOrNull(p2);

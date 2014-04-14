@@ -80,14 +80,14 @@ public class Index {
         Integer docId2 = popNextOrNull(iter2);
         Integer prevDocId = 0;
         while (docId1 != null && docId2 != null) {
-            if (docId1 < docId2) {
-                if (prevDocId < docId1) {
+            if (docId1.compareTo(docId2) < 0) {
+                if (prevDocId.compareTo(docId1) < 0) {
                     postings.add(docId1);
                     prevDocId = docId1;
                 }
                 docId1 = popNextOrNull(iter1);
             } else {
-                if (prevDocId < docId2) {
+                if (prevDocId.compareTo(docId2) < 0) {
                     postings.add(docId2);
                     prevDocId = docId2;
                 }
@@ -96,14 +96,14 @@ public class Index {
         }
 
         while (docId1 != null) {
-            if (prevDocId < docId1) {
+            if (prevDocId.compareTo(docId1) < 0) {
                 postings.add(docId1);
             }
             docId1 = popNextOrNull(iter1);
         }
 
         while (docId2 != null) {
-            if (prevDocId < docId2) {
+            if (prevDocId.compareTo(docId2) < 0) {
                 postings.add(docId2);
             }
             docId2 = popNextOrNull(iter2);
