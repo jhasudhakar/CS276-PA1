@@ -14,6 +14,10 @@ public class VBIndex implements BaseIndex {
     private static final int Integer_BYTES = Integer.SIZE / Byte.SIZE;
     private static final int INVALID_VBCODE = -1;
 
+    /**
+     * Encodes integer array using gap encoding
+     * @param inputDocIdsOutputGaps
+     */
     private static void GapEncode(int[] inputDocIdsOutputGaps) {
         int curr = 0, prev;
         for (int i = 0; i < inputDocIdsOutputGaps.length; i++) {
@@ -23,6 +27,10 @@ public class VBIndex implements BaseIndex {
         }
     }
 
+    /**
+     * Decodes gaps using gap decoding
+     * @param inputGapsOutputDocIds
+     */
     public static void GapDecode(int[] inputGapsOutputDocIds) {
         for (int i = 1; i < inputGapsOutputDocIds.length; i++) {
             inputGapsOutputDocIds[i] = inputGapsOutputDocIds[i - 1] + inputGapsOutputDocIds[i];
@@ -30,6 +38,13 @@ public class VBIndex implements BaseIndex {
     }
 
 
+    /**
+     * Encodes gaps using VB coding and output to FileChannel
+     *
+     * @param inputGaps
+     * @param numGaps
+     * @param fc
+     */
     private static void VBEncode(int[] inputGaps, int numGaps, FileChannel fc) {
         int totalNumBytes = 0;
         byte encodedInt[] = new byte[Integer.SIZE/7 + 1];
@@ -57,6 +72,12 @@ public class VBIndex implements BaseIndex {
 
     }
 
+    /**
+     * Encodes an integer using VB encoding
+     * @param gap
+     * @param outputVBCode
+     * @return
+     */
     private static int VBEncodeInteger(int gap, byte[] outputVBCode) {
         int numBytes = 0, numBits = 0;
         for (int i = 0; i < 32; i++) {
@@ -76,6 +97,12 @@ public class VBIndex implements BaseIndex {
         return numBytes;
     }
 
+    /**
+     * Use VB decoding to decode an integer from a byte array
+     * @param inputVBCode
+     * @param startIndex
+     * @param numberEndIndex
+     */
     private static void VBDecodeInteger(byte[] inputVBCode, int startIndex, int[] numberEndIndex) {
         // Fill in your code here
         int nextIndex = startIndex;
@@ -100,16 +127,13 @@ public class VBIndex implements BaseIndex {
 
     @Override
     public PostingList readPosting(FileChannel fc) {
-        /*
-         * Your code here
-         */
         ByteBuffer[] buffer = new ByteBuffer[3];
         buffer[0] = ByteBuffer.allocate(Integer_BYTES);
         buffer[1] = ByteBuffer.allocate(Integer_BYTES);
         try {
-            fc.read(buffer[0]);
+            fc.read(buffer[0]); // get termId
             buffer[0].rewind();
-            fc.read(buffer[1]);
+            fc.read(buffer[1]); // get numBytes
             buffer[1].rewind();
         } catch (IOException e) {
             e.printStackTrace();
@@ -118,6 +142,8 @@ public class VBIndex implements BaseIndex {
         buffer[0].clear();
         int numBytes = buffer[1].getInt();
         buffer[1].clear();
+
+        // get the whole posting list
         buffer[2] = ByteBuffer.allocate(numBytes);
         try {
             fc.read(buffer[2]);
@@ -136,6 +162,7 @@ public class VBIndex implements BaseIndex {
                 numGaps++;
             }
         }
+        // use VBDecodeInteger to decode and prepare input for GapDecode
         int[] gaps = new int[numGaps];
         int[] numberEndIndex = new int[2];
         numberEndIndex[1] = 0;
@@ -143,6 +170,7 @@ public class VBIndex implements BaseIndex {
             VBDecodeInteger(inputVBCode, numberEndIndex[1], numberEndIndex);
             gaps[i] = numberEndIndex[0];
         }
+        // use gap decode and write to disk
         GapDecode(gaps);
         List<Integer> l = new ArrayList<Integer>();
         for (int i = 0; i < numGaps; i++) {
@@ -165,12 +193,15 @@ public class VBIndex implements BaseIndex {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        // prepare input for GapEncode
         int[] arr = new int[p.getList().size()];
         Iterator<Integer> iter = p.getList().iterator();
         for (int i = 0; i < arr.length; i++) {
             arr[i] = iter.next();
         }
+        // use gap encoding the input so that we can store less
         GapEncode(arr);
+        // use VB encoding and write to disk
         VBEncode(arr, arr.length, fc);
     }
 }
