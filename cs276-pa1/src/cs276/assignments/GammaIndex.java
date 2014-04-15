@@ -171,13 +171,25 @@ public class GammaIndex implements BaseIndex {
             prevId = currId;
         }
 
-        // Q: is it possible gammaCodes.length() reaches or even exceeds Integer.MAX?
-        assert gammaCodes.length() > 0;
+        // nextIndex is the number of bits used in the BitSet
+        // Note: BitSet.length() is NOT used for querying how much bits
+        // have been used, so ALWAYS use usedBits!
+        int usedBits = nextIndex;
 
-        int bytes = numBytes(gammaCodes.length());
-        ByteBuffer buffer = ByteBuffer.allocate(Integer_BYTES + bytes);
-        buffer.putInt(gammaCodes.length());
-        bitSetToBytes(gammaCodes, buffer);
+        // Q: is it possible usedBits reaches or even exceeds Integer.MAX?
+        // A: Seems not possible. Assume each doc id still uses 4 bytes
+        //    (at worst), with Integer.MAX bits, we can store
+        //        (2^31-1)/32 ~= 67M
+        //    doc IDs.
+        assert usedBits > 0;
+
+        ByteBuffer buffer = ByteBuffer.allocate(Integer_BYTES);
+        buffer.putInt(usedBits);
+        FileChannelUtil.writeToFileChannel(fc, buffer);
+
+        int bytes = numBytes(usedBits);
+        buffer = ByteBuffer.allocate(bytes);
+        bitSetToBytes(gammaCodes, usedBits, buffer);
 
         FileChannelUtil.writeToFileChannel(fc, buffer);
     }
@@ -197,11 +209,12 @@ public class GammaIndex implements BaseIndex {
      * Convert a BitSet to bytes and output to the ByteBuffer.
      *
      * @param stream
+     * @param usedBits the bits in buffer which are used
      * @param buffer
      */
-    private static void bitSetToBytes(BitSet stream, ByteBuffer buffer) {
+    private static void bitSetToBytes(BitSet stream, int usedBits, ByteBuffer buffer) {
         byte block = 0;
-        for (int i = 0;i < stream.length();++i) {
+        for (int i = 0;i < usedBits;++i) {
             block |= (stream.get(i) ? 1 : 0) << (i%Byte.SIZE);
             if ((i+1)%Byte.SIZE == 0) {
                 // block is full, flush
@@ -211,7 +224,7 @@ public class GammaIndex implements BaseIndex {
             }
         }
 
-        if (stream.length()%Byte.SIZE != 0) {
+        if (usedBits%Byte.SIZE != 0) {
             // not byte-aligned, flush the trailing part
             buffer.put(block);
         }
