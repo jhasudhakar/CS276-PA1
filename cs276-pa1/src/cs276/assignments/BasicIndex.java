@@ -1,5 +1,7 @@
 package cs276.assignments;
 
+import cs276.util.FileChannelUtil;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -20,7 +22,7 @@ public class BasicIndex implements BaseIndex {
     public PostingList readPosting(FileChannel fc) {
         ByteBuffer buffer = ByteBuffer.allocate(Integer_BYTES * BUFFER_LIMIT);
 
-        readFromFileChannel(fc, buffer);
+        FileChannelUtil.readFromFileChannel(fc, buffer);
         if (!buffer.hasRemaining())
             return null;
 
@@ -49,7 +51,7 @@ public class BasicIndex implements BaseIndex {
             // assert (reachedEnd || !buffer.hasRemaining());
 
             if (!reachedEnd) {
-                readFromFileChannel(fc, buffer);
+                FileChannelUtil.readFromFileChannel(fc, buffer);
             }
         }
 
@@ -79,7 +81,7 @@ public class BasicIndex implements BaseIndex {
         while (iterator.hasNext()) {
             if (counter == BUFFER_LIMIT) {
                 // buffer is full, flush to file
-                writeToFileChannel(fc, buffer);
+                FileChannelUtil.writeToFileChannel(fc, buffer);
                 counter = 0;
             }
 
@@ -93,34 +95,11 @@ public class BasicIndex implements BaseIndex {
         // as we will also write the boundary (-1), should first check
         // if the buffer is full
         if (counter == BUFFER_LIMIT)
-            writeToFileChannel(fc, buffer);
+            FileChannelUtil.writeToFileChannel(fc, buffer);
 
         buffer.putInt(-1); // posting list boundary
         // compact buffer so it's ready to write
-        writeToFileChannel(fc, buffer);
+        FileChannelUtil.writeToFileChannel(fc, buffer);
     }
 
-    private static void writeToFileChannel(FileChannel fc, ByteBuffer buffer) {
-        try {
-            buffer.flip();
-            fc.write(buffer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            buffer.clear();
-        }
-    }
-
-    private static void readFromFileChannel(FileChannel fc, ByteBuffer buffer) {
-        try {
-            // clear buffer
-            buffer.clear();
-            // read into buffer
-            fc.read(buffer);
-            // compact buffer
-            buffer.flip();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }
