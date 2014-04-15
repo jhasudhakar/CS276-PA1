@@ -38,7 +38,7 @@ public class FileChannelUtil {
             // read into buffer
             fc.read(buffer);
             // compact buffer
-            buffer.rewind();
+            buffer.flip();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -54,7 +54,7 @@ public class FileChannelUtil {
             e.printStackTrace();
         }
         for (int i = 0; i < buffer.length; i++) {
-            buffer[i].rewind();
+            buffer[i].flip();
         }
     }
 }
