@@ -121,6 +121,9 @@ public class VBIndex implements BaseIndex {
         buffer[0] = ByteBuffer.allocate(Integer_BYTES);
         buffer[1] = ByteBuffer.allocate(Integer_BYTES);
         FileChannelUtil.readFromFileChannel(fc, buffer[0]);
+        if (!buffer[0].hasRemaining()) {
+            return null;
+        }
         FileChannelUtil.readFromFileChannel(fc, buffer[1]);
         int termId = buffer[0].getInt();
         int numBytes = buffer[1].getInt();
