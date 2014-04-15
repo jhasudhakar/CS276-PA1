@@ -180,17 +180,19 @@ public class GammaIndex implements BaseIndex {
         // A: Seems not possible. Assume each doc id still uses 4 bytes
         //    (at worst), with Integer.MAX bits, we can store
         //        (2^31-1)/32 ~= 67M
-        //    doc IDs.
+        //    doc IDs for a single posting list, which is large enough for
+        //    for the dataset in this assignment.
         assert usedBits > 0;
 
+        // write number of bits
         ByteBuffer buffer = ByteBuffer.allocate(Integer_BYTES);
         buffer.putInt(usedBits);
         FileChannelUtil.writeToFileChannel(fc, buffer);
 
+        // write gamma codes
         int bytes = numBytes(usedBits);
         buffer = ByteBuffer.allocate(bytes);
         bitSetToBytes(gammaCodes, usedBits, buffer);
-
         FileChannelUtil.writeToFileChannel(fc, buffer);
     }
 
