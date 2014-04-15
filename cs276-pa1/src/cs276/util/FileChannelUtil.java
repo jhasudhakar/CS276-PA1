@@ -16,6 +16,21 @@ public class FileChannelUtil {
         }
     }
 
+    public static void writeToFileChannel(FileChannel fc, ByteBuffer[] buffer) {
+        for (int i = 0; i < buffer.length; i++) {
+            buffer[i].flip();
+        }
+        try {
+            fc.write(buffer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            for (int i = 0; i < buffer.length; i++) {
+                buffer[i].clear();
+            }
+        }
+    }
+
     public static void readFromFileChannel(FileChannel fc, ByteBuffer buffer) {
         try {
             // clear buffer
@@ -23,9 +38,23 @@ public class FileChannelUtil {
             // read into buffer
             fc.read(buffer);
             // compact buffer
-            buffer.flip();
+            buffer.rewind();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public static void readFromFileChannel(FileChannel fc, ByteBuffer[] buffer) {
+        for (int i = 0; i < buffer.length; i++) {
+            buffer[i].clear();
+        }
+        try {
+            fc.read(buffer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        for (int i = 0; i < buffer.length; i++) {
+            buffer[i].rewind();
         }
     }
 }

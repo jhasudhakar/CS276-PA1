@@ -1,7 +1,7 @@
 package cs276.assignments;
 
-import javax.print.DocFlavor;
-import java.io.IOError;
+import cs276.util.FileChannelUtil;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -59,17 +59,7 @@ public class VBIndex implements BaseIndex {
             }
         }
         buffer[0].putInt(totalNumBytes);
-        buffer[0].flip();
-        buffer[1].flip();
-        try {
-            fc.write(buffer);
-        } catch(IOException e) {
-            e.printStackTrace();
-        } finally {
-            buffer[0].clear();
-            buffer[1].clear();
-        }
-
+        FileChannelUtil.writeToFileChannel(fc, buffer);
     }
 
     /**
@@ -130,27 +120,15 @@ public class VBIndex implements BaseIndex {
         ByteBuffer[] buffer = new ByteBuffer[3];
         buffer[0] = ByteBuffer.allocate(Integer_BYTES);
         buffer[1] = ByteBuffer.allocate(Integer_BYTES);
-        try {
-            fc.read(buffer[0]); // get termId
-            buffer[0].rewind();
-            fc.read(buffer[1]); // get numBytes
-            buffer[1].rewind();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        FileChannelUtil.readFromFileChannel(fc, buffer[0]);
+        FileChannelUtil.readFromFileChannel(fc, buffer[1]);
         int termId = buffer[0].getInt();
-        buffer[0].clear();
         int numBytes = buffer[1].getInt();
-        buffer[1].clear();
 
         // get the whole posting list
         buffer[2] = ByteBuffer.allocate(numBytes);
-        try {
-            fc.read(buffer[2]);
-            buffer[2].rewind();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        FileChannelUtil.readFromFileChannel(fc, buffer[2]);
+
         // count the number of gaps
         int numGaps = 0;
         byte[] inputVBCode = new byte[numBytes];
@@ -187,12 +165,8 @@ public class VBIndex implements BaseIndex {
         // first write termId
         ByteBuffer buffer = ByteBuffer.allocate(Integer_BYTES);
         buffer.putInt(p.getTermId());
-        buffer.flip();
-        try {
-            fc.write(buffer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        FileChannelUtil.writeToFileChannel(fc, buffer);
+
         // prepare input for GapEncode
         int[] arr = new int[p.getList().size()];
         Iterator<Integer> iter = p.getList().iterator();
