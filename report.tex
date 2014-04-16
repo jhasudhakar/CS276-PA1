@@ -3,20 +3,6 @@
 \usepackage{geometry,enumerate}
 \geometry{letterpaper}
 
-%%%%%%%%%% Start TeXmacs macros
-\catcode`\<=\active \def<{
-\fontencoding{T1}\selectfont\symbol{60}\fontencoding{\encodingdefault}}
-\catcode`\>=\active \def>{
-\fontencoding{T1}\selectfont\symbol{62}\fontencoding{\encodingdefault}}
-\catcode`\|=\active \def|{
-\fontencoding{T1}\selectfont\symbol{124}\fontencoding{\encodingdefault}}
-\newcommand{\tmtextbf}[1]{{\bfseries{#1}}}
-\newcommand{\tmtt}[1]{\texttt{#1}}
-\newcommand{\tmverbatim}[1]{{\ttfamily{#1}}}
-\newenvironment{enumeratealpha}{\begin{enumerate}[a{\textup{)}}] }{\end{enumerate}}
-\newenvironment{enumeratenumeric}{\begin{enumerate}[1.] }{\end{enumerate}}
-%%%%%%%%%% End TeXmacs macros
-
 \begin{document}
 
 \title{CS276 PA1 Report}
@@ -30,24 +16,24 @@
 We followed the structure of the starter code and kept the predefined
 interface intact. To summarize:
 \begin{itemize}
-  \item \tmverbatim{Index} class implements the BSBI indexing algorithm
+  \item \texttt{Index} class implements the BSBI indexing algorithm
   
-  \item \tmverbatim{Query} class implements boolean conjunctive query
+  \item \texttt{Query} class implements boolean conjunctive query
   processing algorithm
   
-  \item \tmverbatim{BaseIndex} defines the interface for writing/reading
+  \item \texttt{BaseIndex} defines the interface for writing/reading
   posting lists
   
-  \item \tmverbatim{BasicIndex} class writes uncompressed posting lists
+  \item \texttt{BasicIndex} class writes uncompressed posting lists
   to/reads posting lists from disk
   
-  \item \tmverbatim{VBIndex} writes/reads posting lists with variable byte
+  \item \texttt{VBIndex} writes/reads posting lists with variable byte
   encoding for gaps
   
-  \item \tmverbatim{GammaIndex} writes/reads posting lists with gamma encoding
+  \item \texttt{GammaIndex} writes/reads posting lists with gamma encoding
   for gaps
 \end{itemize}
-There are also some helper classes, e.g. \tmverbatim{ListLengthComparator}
+There are also some helper classes, e.g. \texttt{ListLengthComparator}
 which is used for sorting posting lists when processing the query.
 
 Some key algorithm are explained in detail as follows.
@@ -55,13 +41,13 @@ Some key algorithm are explained in detail as follows.
 \subsection{Indexing Algorithm}
 
 Key steps in the indexing algorithm are:
-\begin{enumeratenumeric}
+\begin{enumerate}
   \item Process blocks one by one:
-  \begin{enumeratenumeric}
-    \item For each block, traverse each file and generate <Term ID, Doc ID>
+  \begin{enumerate}
+    \item For each block, traverse each file and generate \textless Term ID, Doc ID\textgreater
     pairs
     
-    \item After processing all files in the block, sort the <Term ID, Doc ID>
+    \item After processing all files in the block, sort the \textless Term ID, Doc ID\textgreater
     pairs first by Term ID then by Doc ID and organize pairs with the same
     Term ID into a posting list.
     
@@ -69,9 +55,9 @@ Key steps in the indexing algorithm are:
     list writing algorithm
     
     \item Push the file into the merge queue
-  \end{enumeratenumeric}
+  \end{enumerate}
   \item Merge blocks into a unified index:
-  \begin{enumeratenumeric}
+  \begin{enumerate}
     \item Pop two block files from the queue
     
     \item Merge the postings lists with the same Term ID (if possible) into a
@@ -82,12 +68,12 @@ Key steps in the indexing algorithm are:
     \item Push the merged file into the merge queue
     
     \item Proceed until the size of queue is 1
-  \end{enumeratenumeric}
+  \end{enumerate}
   \item Write supplemental information (Term to Term ID mapping, Doc Name to
   Doc ID mapping, posting list positions) out to files
-\end{enumeratenumeric}
+\end{enumerate}
 The indexing algorithm guarantees that:
-\begin{enumeratenumeric}
+\begin{enumerate}
   \item Term ID and Doc ID are always greater than 0
   
   \item When indexing the blocks, only one block is loaded into memory at a
@@ -96,7 +82,7 @@ The indexing algorithm guarantees that:
   \item When merging two blocks, the indexes are loaded in in a stream
   fashion. That is, for each index to merge, only a posting list is loaded at
   a time.
-\end{enumeratenumeric}
+\end{enumerate}
 
 \subsection{Query Processing Algorithm}
 
@@ -105,27 +91,27 @@ list length to optimize query performance.
 
 \subsection{I/O}
 
-We use {\tmtt{java.nio}} package for file I/O and mainly rely on
-{\tmtt{RandomAccessFile}}, {\tmtt{FileChannel}} and {\tmtt{ByteBuffer}}
+We use {\texttt{java.nio}} package for file I/O and mainly rely on
+{\texttt{RandomAccessFile}}, {\texttt{FileChannel}} and {\texttt{ByteBuffer}}
 classes. The latter two classes provide byte-level access to files, which we
 find useful as we need to record position in file for each posting
 list{\footnote{Every time we need to write a posting list, we use the current
-position of {\tmtt{FileChannel}} as the start position of the posting list in
-file.}}. Though low-level, the {\tmtt{java.nio}} package offers us finer
+position of {\texttt{FileChannel}} as the start position of the posting list in
+file.}}. Though low-level, the {\texttt{java.nio}} package offers us finer
 control over disk access.
 
 \subsection{Variable Byte Encoding}
 
 A posting list is kept on disk in three parts: Term ID, \#bytes, Doc ID gaps.
 We only compress the Doc ID gaps for two reasons:
-\begin{enumeratenumeric}
+\begin{enumerate}
   \item The Term ID will always occupy 4 bytes and thus can be read
   deterministically when loading. So is for \#bytes.
   
   \item Compressing the Doc ID gaps already gives a huge space saving, and
   further compressing the Term ID and size will only provide trivial space
   saving but heavy loading overhead.
-\end{enumeratenumeric}
+\end{enumerate}
 When loading a posting list, Term ID and \#bytes are read in first. With
 \#bytes, we can determine how many bytes to read in and then decode the Doc ID
 gaps.
@@ -138,36 +124,36 @@ $\gamma$-encoded. \#bits is not encoded and is stored in 4 bytes on disk.
 
 $\gamma$ encoding is a bit more complicated than VB encoding. Writing a
 posting list involves:
-\begin{enumeratenumeric}
-  \item $\gamma$-encode the IDs into a {\tmtt{BitSet}}
+\begin{enumerate}
+  \item $\gamma$-encode the IDs into a {\texttt{BitSet}}
   
-  \item Set \#bits to the number of bits used in the {\tmtt{BitSet}}
+  \item Set \#bits to the number of bits used in the {\texttt{BitSet}}
   
-  \item Convert the {\tmtt{BitSet}} to a {\tmtt{ByteBuffer}} (pad last byte
+  \item Convert the {\texttt{BitSet}} to a {\texttt{ByteBuffer}} (pad last byte
   with 0 if necessary)
   
-  \item Write \#bits and the {\tmtt{ByteBuffer}} to file
-\end{enumeratenumeric}
+  \item Write \#bits and the {\texttt{ByteBuffer}} to file
+\end{enumerate}
 Similarly, when reading a posting list:
-\begin{enumeratenumeric}
+\begin{enumerate}
   \item Read 4 bytes - it's \#bits
   
   \item Compute \#bytes to read with \#bits{\footnote{See
-  {\tmtt{GammaIndex.numBytes(int bits)}}.}} and read into a
-  {\tmtt{ByteBuffer}}
+  {\texttt{GammaIndex.numBytes(int bits)}}.}} and read into a
+  {\texttt{ByteBuffer}}
   
-  \item Convert the {\tmtt{ByteBuffer}} to a {\tmtt{BitSet}}
+  \item Convert the {\texttt{ByteBuffer}} to a {\texttt{BitSet}}
   
-  \item $\gamma$-ecode the {\tmtt{BitSet}} into integers up to \#bits bits
+  \item $\gamma$-ecode the {\texttt{BitSet}} into integers up to \#bits bits
   
   \item the first integer is the Term ID and the following are the Doc ID gaps
-\end{enumeratenumeric}
+\end{enumerate}
 
 \section{Performance}
 
 We run the development set on a Retina 13 MacBook with normal load. The
-statistics are{\footnote{The numbers in {\tmtt{indexsize.txt}} and
-{\tmtt{indextime.txt}} reported.}}:
+statistics are{\footnote{The numbers in {\texttt{indexsize.txt}} and
+{\texttt{indextime.txt}} reported.}}:
 
 \begin{table}[h]
   \begin{tabular}{|r|c|c|c|}
@@ -182,8 +168,8 @@ statistics are{\footnote{The numbers in {\tmtt{indexsize.txt}} and
   \caption{Index Sizes}
 \end{table}
 
-The query processing time are{\footnote{The numbers in {\tmtt{querytime.txt}}
-and {\tmtt{query\_memory\_out}} are reported.}}:
+The query processing time are{\footnote{The numbers in {\texttt{querytime.txt}}
+and {\texttt{query\_memory\_out}} are reported.}}:
 
 \begin{table}[h]
   \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
@@ -202,13 +188,13 @@ and {\tmtt{query\_memory\_out}} are reported.}}:
 
 \section{Discussion}
 
-\begin{enumeratealpha}
-  \item In this PA we asked you to use each sub-directory as a block and build
+\begin{itemize}
+  \item[a)] In this PA we asked you to use each sub-directory as a block and build
   index for one block at a time. Can you discuss the tradeoff of different
   sizes of blocks? Is there a general strategy when we are working with
   limited memory but want to minimize indexing time?
   
-  \tmtextbf{Solution:} Larger blocks would introduce larger memory usage but
+  \textbf{Solution:} Larger blocks would introduce larger memory usage but
   fewer rounds of merges. A extremely large block might not fit into the
   memory such that we cannot do in-memory sort. Similarly, smaller blocks
   would use less memory but lead to more rounds of merges. An too small block
@@ -222,19 +208,19 @@ and {\tmtt{query\_memory\_out}} are reported.}}:
     block size = total mem - auxiliary information size
   \end{center}
   
-  where auiliary information is the {\tmtt{termDict}}, {\tmtt{docDict}}, etc.
+  where auiliary information is the {\texttt{termDict}}, {\texttt{docDict}}, etc.
   
-  \item Is there a part of your indexing program that limits its scalability
+  \item[b)] Is there a part of your indexing program that limits its scalability
   to larger datasets? Describe all the other parts of the indexing process
   that you can optimize for indexing time/scalability and retrieval time.
   
-  \tmtextbf{Solution:} There are several parts in our implementation which
+  \textbf{Solution:} There are several parts in our implementation which
   limits the scalability:
   \begin{itemize}
     \item sub-directory as a block: won't fit into memory if the subdirctory
     is too large
     
-    \item global auxiliary information such as {\tmtt{termDict}}: linearly
+    \item global auxiliary information such as {\texttt{termDict}}: linearly
     grows with corpus size and will occupy too much memory, making not enough
     space for block (or even exceed the total memory size)
     
@@ -248,15 +234,15 @@ and {\tmtt{query\_memory\_out}} are reported.}}:
     
     \item choose proper block size according to a)
     
-    \item cache auxiliary information (e.g. {\tmtt{termDict}}) to reduce
+    \item cache auxiliary information (e.g. {\texttt{termDict}}) to reduce
     memory usage
     
     \item load posting list in a buffered way instead of loading the whole
     list
   \end{itemize}
-  \item Any more ideas of how to improve indexing or retrieval performance?
+  \item[c)] Any more ideas of how to improve indexing or retrieval performance?
   
-  \tmtextbf{Solution:} Ideas include:
+  \textbf{Solution:} Ideas include:
   \begin{itemize}
     \item sort posting lists by size and load a posting list only when it's
     its turn to merge (the current implementation will load posting lists of
@@ -272,6 +258,6 @@ and {\tmtt{query\_memory\_out}} are reported.}}:
     \item model indexing/retrieval into a distributed system (like what Google
     does)
   \end{itemize}
-\end{enumeratealpha}
+\end{itemize}
 
 \end{document}
