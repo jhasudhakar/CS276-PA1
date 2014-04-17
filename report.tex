@@ -14,7 +14,7 @@
 \section{System Design}
 
 We followed the structure of the starter code and kept the predefined
-interface intact. To summarize:
+interface. To summarize:
 \begin{itemize}
   \item \texttt{Index} class implements the BSBI indexing algorithm
   
@@ -44,12 +44,12 @@ Key steps in the indexing algorithm are:
 \begin{enumerate}
   \item Process blocks one by one:
   \begin{enumerate}
-    \item For each block, traverse each file and generate \textless Term ID, Doc ID\textgreater
+    \item For each block, traverse each file and generate \textless Term ID, Doc ID\textgreater{}
     pairs
     
-    \item After processing all files in the block, sort the \textless Term ID, Doc ID\textgreater
+    \item After processing all files in the block, sort the \textless Term ID, Doc ID\textgreater{}
     pairs first by Term ID then by Doc ID and organize pairs with the same
-    Term ID into a posting list.
+    Term ID into a posting list
     
     \item Create a file and store the posting lists with specified posting
     list writing algorithm
@@ -74,7 +74,7 @@ Key steps in the indexing algorithm are:
 \end{enumerate}
 The indexing algorithm guarantees that:
 \begin{enumerate}
-  \item Term ID and Doc ID are always greater than 0
+  \item Term ID and Doc ID are always greater than 0 (so there's no problem for $\gamma$ encoding)
   
   \item When indexing the blocks, only one block is loaded into memory at a
   time
@@ -86,15 +86,22 @@ The indexing algorithm guarantees that:
 
 \subsection{Query Processing Algorithm}
 
-First, split the input string by whitespace. Then order the terms by postings
-list length to optimize query performance.
+The key steps are:
+
+\begin{enumerate}
+  \item Split query into terms by whitepsace
+  \item Load supplemental information such as \texttt{term.dict}
+  \item Load corresponding posting lists from index
+  \item Merge posting lists by increasing size
+  \item Output result
+\end{enumerate}
 
 \subsection{I/O}
 
 We use {\texttt{java.nio}} package for file I/O and mainly rely on
 {\texttt{RandomAccessFile}}, {\texttt{FileChannel}} and {\texttt{ByteBuffer}}
-classes. The latter two classes provide byte-level access to files, which we
-find useful as we need to record position in file for each posting
+classes, which provide byte-level access to files. We
+find them useful as we need to record position in file for each posting
 list{\footnote{Every time we need to write a posting list, we use the current
 position of {\texttt{FileChannel}} as the start position of the posting list in
 file.}}. Though low-level, the {\texttt{java.nio}} package offers us finer
@@ -110,7 +117,7 @@ We only compress the Doc ID gaps for two reasons:
   
   \item Compressing the Doc ID gaps already gives a huge space saving, and
   further compressing the Term ID and size will only provide trivial space
-  saving but heavy loading overhead.
+  saving but complicate loading.
 \end{enumerate}
 When loading a posting list, Term ID and \#bytes are read in first. With
 \#bytes, we can determine how many bytes to read in and then decode the Doc ID
@@ -156,13 +163,14 @@ statistics are{\footnote{The numbers in {\texttt{indexsize.txt}} and
 {\texttt{indextime.txt}} reported.}}:
 
 \begin{table}[h]
+  \centering
   \begin{tabular}{|r|c|c|c|}
     \hline
-    Compression Method & No & VB & Gamma\\
+    \textbf{Compression Method} & Basic & VB & Gamma\\
     \hline
-    Index Size & 72M & 35M & 31M\\
+    \textbf{Index Size} & 72M & 35M & 31M\\
     \hline
-    Indexing Time & 76s & 100s & 97s\\
+    \textbf{Indexing Time} & 76s & 100s & 97s\\
     \hline
   \end{tabular}
   \caption{Index Sizes}
@@ -172,15 +180,16 @@ The query processing time are{\footnote{The numbers in {\texttt{querytime.txt}}
 and {\texttt{query\_memory\_out}} are reported.}}:
 
 \begin{table}[h]
-  \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+  \centering
+  \begin{tabular}{|r|c|c|c|c|c|c|c|c|c|}
     \hline
-    & Q1 & Q2 & Q3 & Q4 & Q5 & Q6 & Q7 & Q8 & Max. Memory\\
+    \textbf{Queries} & Q1 & Q2 & Q3 & Q4 & Q5 & Q6 & Q7 & Q8 & Max. Memory\\
     \hline
-    No Compression & 2s & 1s & 2s & 1s & 2s & 2s & 2s & 1s & 202K\\
+    \textbf{Basic} & 2s & 1s & 2s & 1s & 2s & 2s & 2s & 1s & 202K\\
     \hline
-    VB & 2s & 1s & 2s & 1s & 2s & 2s & 2s & 1s & 202K\\
+    \textbf{VB} & 2s & 1s & 2s & 1s & 2s & 2s & 2s & 1s & 202K\\
     \hline
-    Gamma & 1s & 1s & 2s & 2s & 2s & 2s & 2s & 2s & 202K\\
+    \textbf{Gamma} & 1s & 1s & 2s & 2s & 2s & 2s & 2s & 2s & 202K\\
     \hline
   \end{tabular}
   \caption{Query Time}
@@ -195,7 +204,7 @@ and {\texttt{query\_memory\_out}} are reported.}}:
   limited memory but want to minimize indexing time?
   
   \textbf{Solution:} Larger blocks would introduce larger memory usage but
-  fewer rounds of merges. A extremely large block might not fit into the
+  fewer rounds of merges. An extremely large block might not fit into the
   memory such that we cannot do in-memory sort. Similarly, smaller blocks
   would use less memory but lead to more rounds of merges. An too small block
   not only introduces unnecessary rounds of merges but fails to utilize memory
@@ -246,7 +255,7 @@ and {\texttt{query\_memory\_out}} are reported.}}:
   \begin{itemize}
     \item sort posting lists by size and load a posting list only when it's
     its turn to merge (the current implementation will load posting lists of
-    all query terms)
+    all query terms immediately)
     
     \item use skip list: reduce comparison when merging posting lists
     
